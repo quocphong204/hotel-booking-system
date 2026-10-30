@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thanh Toán & Trả Phòng (Decorator & Strategy Pattern)</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        .bill-card {
+            border-radius: 20px;
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            background: #ffffff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .payment-option-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .payment-option-card:hover {
+            border-color: #94a3b8;
+            background-color: #f1f5f9;
+        }
+        .payment-option-card.active {
+            border-color: #0d6efd;
+            background-color: #eff6ff;
+        }
+        .log-panel {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            border-radius: 16px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            height: calc(100vh - 120px);
+            overflow-y: auto;
+            border: 1px solid #1e293b;
+        }
+        .log-item {
+            padding: 10px 14px;
+            border-bottom: 1px solid #1e293b;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+        .badge-pattern {
+            font-size: 0.72rem;
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm py-3" style="background: #0f172a !important;">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand d-flex align-items-center gap-2" href="/dashboard">
+                <i class="bi bi-building-check text-primary fs-3"></i>
+                <div>
+                    <span class="fs-5 text-white">GRAND LUXURY HOTEL</span>
+                    <span class="badge bg-primary-subtle text-primary ms-2 fs-7">Spring Boot + 6 Patterns</span>
+                </div>
+            </a>
+            <div class="ms-auto d-flex gap-2">
+                <a href="/dashboard" class="btn btn-outline-light rounded-pill btn-sm px-3">
+                    <i class="bi bi-arrow-left me-1"></i> Quay lại Dashboard
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid px-4 py-4">
+        <div class="row g-4">
+            <!-- Left: Checkout Details & Payment Form -->
+            <div class="col-lg-8 col-xl-9">
+                <div class="bill-card p-4 p-md-5 mb-4">
+                    <div class="d-flex justify-content-between align-items-center border-bottom pb-4 mb-4">
+                        <div>
+                            <span class="badge bg-primary-subtle text-primary fw-bold mb-2">Thủ tục Trả phòng</span>
+                            <h3 class="fw-bold text-dark mb-1">
+                                <i class="bi bi-receipt-cutoff text-primary me-2"></i>Chi Tiết Hóa Đơn & Thanh Toán
+                            </h3>
+                            <p class="text-muted small mb-0">Tính toán cấu trúc phân tầng bằng <strong>Decorator Pattern</strong> và thanh toán qua <strong>Strategy Pattern</strong></p>
+                        </div>
+                        <div class="text-end">
+                            <div class="text-muted small">Mã đơn đặt phòng</div>
+                            <div class="fs-4 fw-bold text-primary font-monospace" th:text="${preview.bookingCode}">BK-1700000000</div>
+                        </div>
+                    </div>
+
+                    <!-- Customer & Room Info -->
+                    <div class="row g-3 p-3 bg-light rounded-4 mb-4 border">
+                        <div class="col-md-3">
+                            <div class="text-muted small">Khách hàng</div>
+                            <div class="fw-bold fs-6 text-dark" th:text="${preview.customerName}">Nguyễn Văn A</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-muted small">Số điện thoại</div>
+                            <div class="fw-bold fs-6 text-dark" th:text="${preview.customerPhone}">0901234567</div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-muted small">Số phòng</div>
+                            <div class="fw-bold fs-6 text-primary">
+                                Phòng <span th:text="${preview.roomNumber}">101</span> (<span th:text="${preview.roomType}">STANDARD</span>)
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-muted small">Thời gian lưu trú</div>
+                            <div class="fw-bold fs-6 text-dark" th:text="${preview.nights} + ' đêm'">2 đêm</div>
+                        </div>
+                    </div>
+
+                    <!-- Itemized Cost Breakdown from Decorator Pattern -->
+                    <h5 class="fw-bold text-dark mb-3">
+                        <i class="bi bi-layers-fill text-success me-2"></i>Bảng Kê Chi Tiết Dịch Vụ (Decorator Pattern)
+                    </h5>
+                    <div class="p-4 rounded-4 bg-white border border-light-subtle shadow-sm mb-4">
+                        <div class="text-secondary" style="white-space: pre-line; line-height: 1.8; font-size: 0.95rem;" th:text="${preview.costBreakdown}">
+                            • Tiền phòng cơ bản...
+                            • Buffet sáng hàng ngày...
+                        </div>
+                    </div>
+
+                    <!-- Payment Strategy Selection Form -->
+                    <form th:action="@{/checkout}" method="post">
+                        <input type="hidden" name="bookingId" th:value="${preview.bookingId}">
+                        <input type="hidden" id="baseSubTotal" th:value="${preview.totalAmount}">
+
+                        <h5 class="fw-bold text-dark mb-3">
+                            <i class="bi bi-wallet2 text-warning me-2"></i>Chọn Phương Thức Thanh Toán (Strategy Pattern)
+                        </h5>
+
+                        <div class="row g-3 mb-4">
+                            <!-- Strategy 1: Cash -->
+                            <div class="col-md-4">
+                                <label class="payment-option-card d-block active" id="cardCash" onclick="selectStrategy('CASH')">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <input class="form-check-input mt-0" type="radio" name="paymentMethod" value="CASH" id="radioCash" checked>
+                                        <div>
+                                            <div class="fw-bold text-dark"><i class="bi bi-cash-stack text-success me-1"></i> Tiền mặt</div>
+                                            <div class="text-muted small">0% phụ phí tại quầy</div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <!-- Strategy 2: Credit Card (+1.5%) -->
+                            <div class="col-md-4">
+                                <label class="payment-option-card d-block" id="cardCC" onclick="selectStrategy('CREDIT_CARD')">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <input class="form-check-input mt-0" type="radio" name="paymentMethod" value="CREDIT_CARD" id="radioCC">
+                                        <div>
+                                            <div class="fw-bold text-dark"><i class="bi bi-credit-card-2-front text-primary me-1"></i> Thẻ Visa / Master</div>
+                                            <div class="text-danger small">+1.5% phí xử lý quốc tế</div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <!-- Strategy 3: VNPay QR (-5%) -->
+                            <div class="col-md-4">
+                                <label class="payment-option-card d-block" id="cardVNPay" onclick="selectStrategy('VNPAY')">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <input class="form-check-input mt-0" type="radio" name="paymentMethod" value="VNPAY" id="radioVNPay">
+                                        <div>
+                                            <div class="fw-bold text-dark"><i class="bi bi-qr-code-scan text-danger me-1"></i> VNPay-QR</div>
+                                            <div class="text-success small">Ưu đãi giảm ngay 5%</div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Payment Summary Box -->
+                        <div class="p-4 rounded-4 bg-light border mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">Tổng tạm tính (Decorator):</span>
+                                <span class="fw-semibold" id="displaySubTotal" th:text="${#numbers.formatDecimal(preview.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">2,000,000 VNĐ</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted" id="displayAdjustmentLabel">Điều chỉnh chiến lược thanh toán:</span>
+                                <span class="fw-semibold text-muted" id="displayAdjustment">0 VNĐ</span>
+                            </div>
+                            <hr>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fs-5 fw-bold text-dark">Tổng tiền thanh toán cuối cùng:</span>
+                                    <div class="text-muted small" id="displayStrategyDesc">Áp dụng chiến lược: Tiền mặt tại quầy (Cash - Miễn phí)</div>
+                                </div>
+                                <div class="fs-2 fw-extrabold text-danger" id="displayFinalAmount" th:text="${#numbers.formatDecimal(preview.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">
+                                    2,000,000 VNĐ
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <a href="/dashboard" class="btn btn-outline-secondary px-4 py-2 rounded-3">
+                                <i class="bi bi-x-circle me-1"></i> Hủy giao dịch
+                            </a>
+                            <button type="submit" class="btn btn-primary px-5 py-3 rounded-3 fw-bold fs-5 shadow">
+                                <i class="bi bi-check-circle-fill me-2"></i> Xác nhận Thanh toán & Check-out (Facade)
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right: Pattern Log Console -->
+            <div class="col-lg-4 col-xl-3">
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden" style="background: #0f172a;">
+                    <div class="p-3 border-bottom border-dark d-flex justify-content-between align-items-center">
+                        <div class="text-white fw-bold">
+                            <i class="bi bi-terminal-fill text-success me-2"></i>Pattern Audit Log
+                        </div>
+                    </div>
+                    <div class="log-panel p-2" id="logConsole">
+                        <div th:each="log : ${auditLogs}" class="log-item">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge bg-secondary-subtle text-light" th:text="${log.timestamp}">12:00:00</span>
+                                <span class="badge badge-pattern"
+                                      th:classappend="'bg-' + ${log.badgeColor}"
+                                      th:text="${log.patternName}">Pattern Name</span>
+                            </div>
+                            <div class="text-light" style="word-break: break-word;" th:text="${log.detailMessage}">
+                                Detail message...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const subTotal = parseFloat(document.getElementById('baseSubTotal').value);
+
+        function selectStrategy(strategy) {
+            document.querySelectorAll('.payment-option-card').forEach(el => el.classList.remove('active'));
+
+            let adjustment = 0;
+            let finalAmount = subTotal;
+            let adjText = "0 VNĐ";
+            let adjLabel = "Điều chỉnh phương thức thanh toán:";
+            let desc = "";
+
+            if (strategy === 'CASH') {
+                document.getElementById('radioCash').checked = true;
+                document.getElementById('cardCash').classList.add('active');
+                adjText = "0 VNĐ (Không phụ phí)";
+                finalAmount = subTotal;
+                desc = "Áp dụng chiến lược: Tiền mặt tại quầy (Cash - Miễn phí)";
+            } else if (strategy === 'CREDIT_CARD') {
+                document.getElementById('radioCC').checked = true;
+                document.getElementById('cardCC').classList.add('active');
+                adjustment = subTotal * 0.015;
+                finalAmount = subTotal + adjustment;
+                adjText = "+ " + adjustment.toLocaleString('vi-VN') + " VNĐ (+1.5% phí thẻ)";
+                adjLabel = "Phí cổng thanh toán quốc tế (+1.5%):";
+                desc = "Áp dụng chiến lược: Thẻ tín dụng Quốc tế Visa/Master (+1.5% phí)";
+            } else if (strategy === 'VNPAY') {
+                document.getElementById('radioVNPay').checked = true;
+                document.getElementById('cardVNPay').classList.add('active');
+                adjustment = subTotal * 0.05;
+                finalAmount = subTotal - adjustment;
+                adjText = "- " + adjustment.toLocaleString('vi-VN') + " VNĐ (-5% chiết khấu)";
+                adjLabel = "Khuyến mãi VNPay QR (-5%):";
+                desc = "Áp dụng chiến lược: VNPay-QR Code (Ưu đãi giảm 5%)";
+            }
+
+            document.getElementById('displayAdjustmentLabel').innerText = adjLabel;
+            document.getElementById('displayAdjustment').innerText = adjText;
+            document.getElementById('displayFinalAmount').innerText = finalAmount.toLocaleString('vi-VN') + " VNĐ";
+            document.getElementById('displayStrategyDesc').innerText = desc;
+        }
+
+        // Live Log Auto-Refresh
+        setInterval(() => {
+            fetch('/api/logs')
+                .then(res => res.json())
+                .then(logs => {
+                    const consoleEl = document.getElementById('logConsole');
+                    if (!consoleEl) return;
+                    consoleEl.innerHTML = logs.map(log => `
+                        <div class="log-item">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="badge bg-secondary-subtle text-light">${log.timestamp}</span>
+                                <span class="badge badge-pattern bg-${log.badgeColor}">${log.patternName}</span>
+                            </div>
+                            <div class="text-light" style="word-break: break-word;">${log.detailMessage}</div>
+                        </div>
+                    `).join('');
+                })
+                .catch(err => console.error(err));
+        }, 3000);
+    </script>
+</body>
+</html>
